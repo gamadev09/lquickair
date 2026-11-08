@@ -75,8 +75,8 @@ class Connectable(abc.ABC):
         """Send a file to a device.
 
         Args:
-            device (Device): The device to send to
-            file (str): The file to send
+            file (str): The file to send.
+            device_name (str): Public name advertised to the recipient.
         """
         maybe = await self.connect()
 
@@ -92,7 +92,12 @@ class Connectable(abc.ABC):
 
         try:
             return await _handle_target(
-                file, reader, writer, qrcode=qr_code, facts=self.facts, device_name=device_name,
+                file,
+                reader,
+                writer,
+                qrcode=qr_code,
+                facts=self.facts,
+                device_name=device_name,
             )
         finally:
             writer.close()
@@ -309,7 +314,7 @@ async def discover_services() -> _DiscoverIterator:
     return iterator
 
 
-async def _handle_target(
+async def _handle_target(  # noqa: PLR0913 - transport streams and handshake options.
     file: str,
     reader: asyncio.StreamReader,
     writer: asyncio.StreamWriter,
@@ -472,7 +477,11 @@ class SendConnection(NearbyConnection):
         )
 
     async def send_connection_request(
-        self, endpoint_id: bytes, *, facts: Facts, device_name: str = NAME,
+        self,
+        endpoint_id: bytes,
+        *,
+        facts: Facts,
+        device_name: str = NAME,
     ) -> None:
         # TODO: populate from system (iw, NetworkManager, etc.)
 

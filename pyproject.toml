@@ -76,7 +76,7 @@ docs = ["furo>=2024.8.6", "myst-parser>=4.0.1", "sphinx>=8.1.3"]
 stubPath = "stubs"
 
 [tool.ruff]
-include = ["*.py", "*.pyi"]
+include = ["lquickair/**/*.py", "gui.py", "example.py"]
 exclude = ["lquickair/protos/*", "docs/*", "*.cpp"]
 line-length = 100
 

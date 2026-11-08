@@ -1,57 +1,45 @@
+"""Command-line examples for discovering, sending, and receiving shares."""
+
+import argparse
 import asyncio
 import contextlib
 import sys
-from logging import DEBUG, basicConfig
+from logging import basicConfig
 
 import lquickair
-import lquickair.common
+from lquickair import common
 from lquickair.mdns.send import trigger_devices
-
-basicConfig(level=lquickair.common.SILLY)
 
 
 async def send(file: str) -> None:
+    """Send one file to the first connectable device discovered."""
     discovery = await lquickair.discover_services()
     discovery.qr_code.print()
-
     async for device in discovery:
         if device.connectable:
-            return await device.send(file=file)
-
-    return None
-
+            await device.send(file=file)
+            return
 
 
 async def main(argv: list[str]) -> None:
-    if len(argv) < 2:
-        print("Usage: example.py <mode> [args...]")
-        return
-
-    if argv[1] == "send":
-        if len(argv) < 3:
-            print("Usage: example.py send <file>")
-            return
-        await send(argv[2])
-    elif argv[1] == "receive":
-        # if you want to appear like different devices, you can change the endpoint_id like this:
-        # asnyc for request in lquickair.receive(endpoint_id=b"1234"):
-        # (the endpoint_id must be 4 bytes long, you can use lquickair.generate_enpoint_id())
-
+    """Parse the example mode and run it until completed or interrupted."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("mode", choices=("send", "receive", "advertise"))
+    parser.add_argument("file", nargs="?", help="File to send in send mode")
+    arguments = parser.parse_args(argv[1:])
+    if arguments.mode == "send":
+        if arguments.file is None:
+            parser.error("send mode requires a file")
+        await send(arguments.file)
+    elif arguments.mode == "receive":
         async for request in lquickair.receive(endpoint_id=lquickair.generate_endpoint_id()):
             results = await request.accept()
-            print(results)
-    elif argv[1] == "advertise":
-        lquickair.common.create_task(trigger_devices())
-
+            print(results)  # noqa: T201 - this example reports received data to the terminal.
     else:
-        print("Unknown mode:", argv[1])
+        await trigger_devices()
 
-async def wrapper():
-    try:
-        await main(sys.argv)
-    finally:
-        await lquickair.common.clear_tasks()
 
 if __name__ == "__main__":
+    basicConfig(level=common.SILLY)
     with contextlib.suppress(KeyboardInterrupt):
-        asyncio.run(wrapper())
+        asyncio.run(main(sys.argv))

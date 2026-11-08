@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import re
 from importlib.resources import files
+from typing import TYPE_CHECKING
 
 from .gtk import Gdk, Gtk
 
@@ -42,7 +41,7 @@ def stylesheet(theme: str) -> str:
 
 def install_style(app: LQuickAir) -> None:
     """Load the selected theme without replacing an existing display provider."""
-    provider = getattr(app: LQuickAir, "style_provider", None)
+    provider = getattr(app, "style_provider", None)
     is_new_provider = provider is None
     if is_new_provider:
         provider = Gtk.CssProvider()

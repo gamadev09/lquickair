@@ -6,10 +6,10 @@ import asyncio
 import contextlib
 import enum
 import math
-from pathlib import Path
 import struct
 import time
 from logging import getLogger
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import aiofile
@@ -165,15 +165,18 @@ class ReceiveConnection(NearbyConnection):
                         "Received full file, saving to downloads/%s",
                         payload_header.file_name,
                     )
-                    output_dir.mkdir(parents=True, exist_ok=True)
+                    await asyncio.to_thread(output_dir.mkdir, parents=True, exist_ok=True)
                     # Treat the remote name as a basename; never overwrite existing files.
                     filename = Path(payload_header.file_name.replace("\\", "/")).name
                     if filename in ("", ".", ".."):
-                        raise ValueError("Invalid incoming filename")
+                        message = "Invalid incoming filename"
+                        raise ValueError(message)
                     destination = output_dir / filename
                     suffix = 1
                     while destination.exists():
-                        destination = output_dir / f"{Path(filename).stem} ({suffix}){Path(filename).suffix}"
+                        destination = (
+                            output_dir / f"{Path(filename).stem} ({suffix}){Path(filename).suffix}"
+                        )
                         suffix += 1
                     with destination.open("xb") as output:
                         async with aiofile.async_open(output) as f:
@@ -230,7 +233,8 @@ class ReceiveConnection(NearbyConnection):
                         payload_header,
                         to_pin(self.auth_string),
                         sender_name=name,
-                        files_only=bool(introduction.file_metadata) and not (
+                        files_only=bool(introduction.file_metadata)
+                        and not (
                             introduction.text_metadata or introduction.wifi_credentials_metadata
                         ),
                         names=tuple(m.name for m in introduction.file_metadata)
@@ -352,7 +356,10 @@ async def _handle_client(
 
 
 async def _socket_server(
-    requests: asyncio.Queue[ShareRequest], *, interface_info: InterfaceInfo, endpoint_id: bytes,
+    requests: asyncio.Queue[ShareRequest],
+    *,
+    interface_info: InterfaceInfo,
+    endpoint_id: bytes,
     output_dir: Path = Path("downloads"),
 ) -> None:
     server = await asyncio.start_server(
@@ -368,7 +375,9 @@ async def _socket_server(
 
 
 async def receive(
-    *, endpoint_id: bytes | None = None, output_dir: Path = Path("downloads"),
+    *,
+    endpoint_id: bytes | None = None,
+    output_dir: Path = Path("downloads"),
     device_name: str = NAME,
 ) -> AsyncIterator[ShareRequest]:
     """Receive something over Quick Share. Runs forever.
@@ -412,9 +421,14 @@ async def receive(
     result: asyncio.Queue[ShareRequest] = asyncio.Queue()
 
     workers = [
-        create_task(_socket_server(
-            result, interface_info=interface_info, endpoint_id=endpoint_id, output_dir=output_dir,
-        )),
+        create_task(
+            _socket_server(
+                result,
+                interface_info=interface_info,
+                endpoint_id=endpoint_id,
+                output_dir=output_dir,
+            )
+        ),
         create_task(_start_mdns_service(services)),
     ]
     try:

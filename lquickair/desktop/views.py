@@ -37,9 +37,9 @@ def build_window(app: LQuickAir) -> None:
     app.capabilities = label("Checking Bluetooth and network support…", muted=True)
     box.append(app.capabilities)
 
-    box.append(build_send_section(app: LQuickAir))
-    box.append(build_receive_section(app: LQuickAir))
-    box.append(build_settings_section(app: LQuickAir))
+    box.append(build_send_section(app))
+    box.append(build_receive_section(app))
+    box.append(build_settings_section(app))
     app.status = label("")
     app.status.set_visible(False)
     app.status.connect(

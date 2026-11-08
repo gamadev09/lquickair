@@ -20,6 +20,7 @@ from ..common import NETWORK_BASE_PATH, InterfaceInfo, Type, from_url64, to_url6
 from ..dbus.firewalld import temporarily_open_port
 
 logger = getLogger(__name__)
+MAX_DEVICE_NAME_BYTES = 255
 
 
 def get_interfaces() -> list[str]:
@@ -111,8 +112,9 @@ def make_n(*, visible: bool, type: Type, name: bytes) -> bytearray:
     # one byte: length of name
     # name, utf-8 encoded
 
-    if not name or len(name) > 255:
-        raise ValueError("Device name must contain 1–255 UTF-8 bytes")
+    if not name or len(name) > MAX_DEVICE_NAME_BYTES:
+        message = "Device name must contain 1-255 UTF-8 bytes"
+        raise ValueError(message)
     n.append((0 if visible else 0x10) | (type.value << 1))
     # add 16 0 bytes
     n.extend([random.randint(1, 8) for _ in range(16)])  # noqa: S311 - random is fine here
