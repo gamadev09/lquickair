@@ -176,3 +176,6 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
+
+# Desktop launcher bootstrap environment
+.bootstrap/
