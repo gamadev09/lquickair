@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1080 1080">
+  <defs>
+    <style>
+      .cls-1{fill:#1463ed}
+      .cls-2{fill:#ffffff}
+      .cls-3{fill:#8dddff}
+    </style>
+  </defs>
+  <title>lQuickAir</title>
+  <g id="Layer_1" data-name="Layer 1">
+  </g>
+  <g id="lQuickAir___Editable_vector_logo" data-name="lQuickAir — Editable vector logo">
+  </g>
+  <g id="Notification___monochrome_vectors" data-name="Notification — monochrome vectors">
+  </g>
+  <g id="Blue_exchange___editable_vectors" data-name="Blue exchange — editable vectors">
+    <g>
+      <path id="Cobalt_tile" data-name="Cobalt tile" d="M275 40 L805 40 C934.787 40 1040 145.213 1040 275 L1040 805 C1040 934.787 934.787 1040 805 1040 L275 1040 C145.213 1040 40 934.787 40 805 L40 275 C40 145.213 145.213 40 275 40 Z" class="cls-1"/>
+      <path id="Send___white_arrow" data-name="Send — white arrow" d="M260 310 L640 310 L640 230 L820 370 L640 510 L640 430 L260 430 C240 430 230 420 230 400 L230 340 C230 320 240 310 260 310 Z" class="cls-2"/>
+      <path id="Receive___sky_blue_arrow" data-name="Receive — sky blue arrow" d="M820 770 L440 770 L440 850 L260 710 L440 570 L440 650 L820 650 C840 650 850 660 850 680 L850 740 C850 760 840 770 820 770 Z" class="cls-3"/>
+    </g>
+  </g>
+</svg>
