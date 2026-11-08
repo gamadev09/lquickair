@@ -22,6 +22,7 @@ logger = getLogger(__name__)
 
 _PayloadHeader = offline_wire_formats.PayloadTransferFramePayloadHeader
 
+
 def _frame_type_name(frame_type: int) -> str:
     try:
         name = offline_wire_formats.V1FrameFrameType(frame_type).name
