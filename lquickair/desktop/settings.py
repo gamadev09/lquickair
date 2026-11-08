@@ -12,12 +12,12 @@ CONTROL_CHARACTER_LIMIT = 32
 
 
 def default_receive_folder() -> Path:
-    """Return the destination used before the user chooses another folder."""
+    """i return the destination used before the user chooses another folder."""
     return Path.home() / "Downloads" / "lquickair"
 
 
 def validate_name(name: str) -> str:
-    """Validate the UTF-8 name length used by the discovery protocol."""
+    """i validate the utf-8 name length used by the discovery protocol."""
     name = name.strip()
     contains_control_character = any(ord(character) < CONTROL_CHARACTER_LIMIT for character in name)
     if not name or len(name.encode("utf-8")) > MAX_DEVICE_NAME_BYTES or contains_control_character:
@@ -30,6 +30,7 @@ class Settings:
     """Load user preferences, falling back to the upstream app's legacy location."""
 
     def __init__(self, path: Path | None = None) -> None:
+        """i initialize the settings state and its required resources."""
         config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
         self.path = path if path is not None else config_home / "lquickair" / "desktop.json"
         self.name = socket.gethostname()[:60] or "Linux PC"
@@ -46,7 +47,7 @@ class Settings:
         self._load(source)
 
     def _load(self, source: Path) -> None:
-        """Keep defaults when the file or its contents cannot be read."""
+        """i keep defaults when the file or its contents cannot be read."""
         try:
             data = json.loads(source.read_text(encoding="utf-8"))
             if not isinstance(data, dict):
@@ -67,7 +68,7 @@ class Settings:
             self.remembered_names = {name for name in names if isinstance(name, str) and name}
 
     def save(self) -> None:
-        """Replace the settings file atomically and keep it private to the user."""
+        """i replace the settings file atomically and keep it private to the user."""
         data = {
             "name": validate_name(self.name),
             "auto_accept": self.auto_accept,
@@ -82,5 +83,5 @@ class Settings:
         temporary.replace(self.path)
 
     def should_accept(self, sender: str, *, files_only: bool) -> bool:
-        """Match remembered names only for files and only after explicit opt-in."""
+        """i match remembered names only for files and only after explicit opt-in."""
         return self.auto_accept and files_only and sender in self.remembered_names

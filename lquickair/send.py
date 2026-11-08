@@ -58,21 +58,28 @@ class Connectable(abc.ABC):
     facts: Facts
 
     def __init__(self, *, facts: Facts) -> None:
+        """i initialize the connectable state and its required resources."""
         self.facts = facts
 
     @abc.abstractmethod
-    async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter] | None: ...
+    async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter] | None:
+        """i open the discovered transport and return its asynchronous streams."""
+        ...
 
     @property
     @abc.abstractmethod
-    def connectable(self) -> bool: ...
+    def connectable(self) -> bool:
+        """i report whether the discovered endpoint can accept a connection."""
+        ...
 
     @property
     @abc.abstractmethod
-    def endpoint_info(self) -> EndpointInfo | None: ...
+    def endpoint_info(self) -> EndpointInfo | None:
+        """i expose the discovered name, visibility, and device type."""
+        ...
 
     async def send(self, file: str, *, device_name: str = NAME) -> None:
-        """Send a file to a device.
+        """i send a file to a device.
 
         Args:
             file (str): The file to send.
@@ -107,6 +114,7 @@ class Connectable(abc.ABC):
 
 class WifiConnectable(Connectable):
     def __init__(self, *, service_info: AsyncServiceInfo, qr_code: QRCode, facts: Facts) -> None:
+        """i initialize the wificonnectable state and its required resources."""
         self.service_info = service_info
         self.qr_code = qr_code
         self._connectable = True
@@ -137,13 +145,16 @@ class WifiConnectable(Connectable):
 
     @property
     def endpoint_info(self) -> EndpointInfo | None:
+        """i expose the discovered name, visibility, and device type."""
         return self._endpoint_info
 
     @property
     def connectable(self) -> bool:
+        """i report whether the discovered endpoint can accept a connection."""
         return self._endpoint_info is not None and self._connectable
 
     async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter] | None:
+        """i open the discovered transport and return its asynchronous streams."""
         if not self.connectable:
             logger.error("Endpoint %r is not connectable", self.peer_endpoint_id)
             return None
@@ -177,6 +188,7 @@ class WifiConnectable(Connectable):
 
 class BluetoothConnectable(Connectable):
     def __init__(self, device: BluetoothDevice, *, facts: Facts) -> None:
+        """i initialize the bluetoothconnectable state and its required resources."""
         self.device = device
         self._endpoint_info = device.endpoint_info
 
@@ -184,9 +196,11 @@ class BluetoothConnectable(Connectable):
 
     @property
     def endpoint_info(self) -> EndpointInfo:
+        """i expose the discovered name, visibility, and device type."""
         return self._endpoint_info
 
     async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter] | None:
+        """i open the discovered transport and return its asynchronous streams."""
         logger.debug("Connecting to Bluetooth device %r", self.device)
         try:
             sock = await connect_bluetooth_device(self.device)
@@ -199,10 +213,12 @@ class BluetoothConnectable(Connectable):
 
     @property
     def connectable(self) -> bool:
+        """i report whether the discovered endpoint can accept a connection."""
         return self.endpoint_info.visible is not False
 
 
 def _mime_to_type(mime_type: str) -> wire_format.FileMetadataType:
+    """i classify a file mime type for its introduction metadata."""
     namespace = mime_type.split("/", maxsplit=1)[0]
 
     if namespace == "audio":
@@ -216,6 +232,7 @@ def _mime_to_type(mime_type: str) -> wire_format.FileMetadataType:
 
 
 def _generate_file_metadata(fp: str, id: int) -> wire_format.FileMetadata:
+    """i describe the file name, size, and type for the receiving peer."""
     path = pathlib.Path(fp)
 
     mime = magic.from_file(  # pyright: ignore[reportUnknownMemberType]
@@ -235,7 +252,7 @@ def _generate_file_metadata(fp: str, id: int) -> wire_format.FileMetadata:
 
 
 def generate_endpoint_id() -> bytes:
-    """Generate a random 4-byte endpoint ID.
+    """i generate a random 4-byte endpoint id.
 
     Example:
         .. code-block:: python
@@ -246,7 +263,6 @@ def generate_endpoint_id() -> bytes:
 
     Returns:
         bytes: The generated endpoint ID
-
     """
     # 4-byte alphanum
     return "".join(random.choices(string.ascii_letters + string.digits, k=4)).encode(  # noqa: S311
@@ -256,11 +272,13 @@ def generate_endpoint_id() -> bytes:
 
 class _DiscoverIterator:
     def __init__(self, *, facts: Facts) -> None:
+        """i initialize the _discoveriterator state and its required resources."""
         self.facts = facts
         self.qr_code = generate_qr()
         self.queue: asyncio.Queue[Connectable] | None = None
 
     async def start(self) -> None:
+        """i start the available network and bluetooth discovery tasks."""
         self.queue = asyncio.Queue()
 
         if self.facts.bluetooth:
@@ -274,6 +292,7 @@ class _DiscoverIterator:
             create_task(task)
 
     async def _lan(self, queue: asyncio.Queue[Connectable]) -> None:
+        """i convert discovered network services into connectable recipients."""
         local_queue = await _discover_services(self.facts)
         while True:
             service_info = await local_queue.get()
@@ -285,20 +304,23 @@ class _DiscoverIterator:
             await queue.put(connectable)
 
     async def _bluetooth(self, queue: asyncio.Queue[Connectable]) -> None:
+        """i convert discovered bluetooth devices into connectable recipients."""
         async for device in find_receiving_devices():
             connectable = BluetoothConnectable(device=device, facts=self.facts)
             await queue.put(connectable)
 
     async def __anext__(self) -> Connectable:
+        """i wait for the next recipient discovered by either transport."""
         assert self.queue is not None  # noqa: S101 - escape hatch for the type checker
         return await self.queue.get()
 
     def __aiter__(self) -> _DiscoverIterator:
+        """i expose this discovery stream as an asynchronous iterator."""
         return self
 
 
 async def discover_services() -> _DiscoverIterator:
-    """Discover Quick Share devices.
+    """i discover compatible nearby recipients over the available services.
 
     Example:
         .. code-block:: python
@@ -323,6 +345,7 @@ async def _handle_target(  # noqa: PLR0913 - transport streams and handshake opt
     qrcode: QRCode | None = None,
     device_name: str = NAME,
 ) -> None:
+    """i complete the outgoing handshake and transfer the introduced file."""
     endpoint_id = generate_endpoint_id()
     conn = SendConnection(reader, writer, endpoint_id=endpoint_id)
     derive_endpoint_id_from_mac(pick_mac_deterministically(get_interfaces()))
@@ -351,6 +374,7 @@ class SendConnection(NearbyConnection):
     def __init__(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, *, endpoint_id: bytes
     ) -> None:
+        """i initialize the sendconnection state and its required resources."""
         super().__init__(reader, writer, endpoint_id=endpoint_id)
 
         # Upgrade gate: set = sends allowed, clear = upgrade in progress.
@@ -371,12 +395,13 @@ class SendConnection(NearbyConnection):
         )
 
     async def _exchange_connection_response_client(self) -> None:
-        """Send our CONNECTION_RESPONSE and consume the peer's."""
+        """i exchange transport responses after the client handshake."""
         connection_response = generate_connection_response()
         await self._backend.send(bytes(connection_response))
         await self._backend.recv()  # consume the peer's CONNECTION_RESPONSE
 
     async def upgrade_client(self) -> bool:
+        """i negotiate session keys and switch the sender to the encrypted channel."""
         keychain = await do_client_key_exchange(self._backend)
         if keychain is None:
             return False
@@ -398,7 +423,7 @@ class SendConnection(NearbyConnection):
         file_name: str,
         flags: int = 0,
     ) -> None:
-        """Send one chunk of a file payload."""
+        """i send one file chunk with its payload identifier and offset."""
         await self._upgrade_gate.wait()
         self._active_sends += 1
         self._sends_idle.clear()
@@ -418,6 +443,7 @@ class SendConnection(NearbyConnection):
                 self._sends_idle.set()
 
     async def close(self) -> None:
+        """i stop the active operations before closing the application."""
         await super().close()
 
         if self._p2p_destroy is not None:
@@ -431,6 +457,7 @@ class SendConnection(NearbyConnection):
         file: str,
         id: int,
     ) -> None:
+        """i read the selected file and stream its chunks to the accepted recipient."""
         start_time = time.perf_counter()
         path = pathlib.Path(file)
         total_size = path.stat().st_size  # noqa: ASYNC240 - stat should be fine
@@ -484,7 +511,7 @@ class SendConnection(NearbyConnection):
         device_name: str = NAME,
     ) -> None:
         # TODO: populate from system (iw, NetworkManager, etc.)
-
+        """i introduce the local name, device type, and supported transports."""
         mediums = [
             offline_wire_formats.ConnectionRequestFrameMedium.WIFI_LAN,
         ]
@@ -530,7 +557,7 @@ class SendConnection(NearbyConnection):
         self,
         qrcode: QRCode | None,
     ) -> None:
-        """Exchange PAIRED_KEY_ENCRYPTION and PAIRED_KEY_RESULT (application layer)."""
+        """i exchange the paired-key compatibility frames with the peer."""
         qr_code_handshake_data = None
 
         if qrcode:
@@ -557,6 +584,7 @@ class SendConnection(NearbyConnection):
         file: str,
         id: int,
     ) -> None:
+        """i describe the outgoing file so the recipient can approve it."""
         meta = _generate_file_metadata(file, id)
         introduction_frame = wire_format.Frame(
             version=wire_format.FrameVersion.V1,
@@ -574,6 +602,7 @@ class SendConnection(NearbyConnection):
         file: str,
         id: int,
     ) -> None:
+        """i wait for the peer decision before starting the file transfer."""
         send_task: asyncio.Task[None] | None = None
 
         async for payload_header, data in self.iter_payloads():
@@ -603,7 +632,7 @@ class SendConnection(NearbyConnection):
         self,
         path: offline_wire_formats.BandwidthUpgradeNegotiationFrameUpgradePathInfo,
     ) -> tuple[str, int] | None:
-        """Return (ip, port) for the upgrade medium, or None to abort."""
+        """i resolve the connection details for the negotiated faster transport."""
         medium = path.medium
         if medium == UpgradeMedium.WIFI_DIRECT:
             creds = path.wifi_direct_credentials
@@ -636,6 +665,7 @@ class SendConnection(NearbyConnection):
         self,
         frame: offline_wire_formats.OfflineFrame,
     ) -> None:
+        """i negotiate and coordinate switching to the proposed transport."""
         upgrade_frame = frame.v1.bandwidth_upgrade_negotiation
 
         logger.debug(

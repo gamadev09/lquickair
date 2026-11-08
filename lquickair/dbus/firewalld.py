@@ -14,6 +14,7 @@ __all__ = ("temporarily_open_port",)
 
 
 async def temporarily_open_port(interface: str, port: int = 8080) -> None:
+    """i request a temporary firewall exception for incoming transfers."""
     logger.info("Opening port %d for 5 minutes", port)
 
     logger.debug("Connecting to the system bus")

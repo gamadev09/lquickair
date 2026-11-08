@@ -91,5 +91,6 @@ __all__ = [
 
 
 def open_rfcomm_socket() -> _socket.socket:
+    """i expose the bluetooth socket through asynchronous reader and writer streams."""
     fd = make_rfcomm_socket()
     return _socket.socket(fileno=fd)

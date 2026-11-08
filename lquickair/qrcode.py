@@ -19,7 +19,7 @@ class QRCode(typing.NamedTuple):
     private_key: ec.EllipticCurvePrivateKey
 
     def keychain(self) -> HiddenKeychain:
-        """Derive the hidden keychain from the QR code's key. Internal use only.
+        """i expose the keys associated with this encrypted channel.
 
         Returns:
             HiddenKeychain: The derived hidden keychain.
@@ -44,7 +44,7 @@ class QRCode(typing.NamedTuple):
         )
 
     def print(self) -> None:
-        """Print the QR code to the terminal in ASCII art form.
+        """i print the qr code to the terminal in ascii art form.
 
         Requires the `qrcode` extra to be installed.
         """
@@ -56,7 +56,7 @@ class QRCode(typing.NamedTuple):
         qr.print_ascii(invert=True)
 
     def qr_code_handshake_data(self, auth_key: bytes) -> bytes:
-        """Internal use only."""
+        """i derive qr authentication data for the paired-key handshake."""
         signature = self.private_key.sign(
             auth_key,
             ec.ECDSA(hashes.SHA256()),
@@ -71,6 +71,7 @@ class HiddenKeychain(typing.NamedTuple):
 
 
 def generate_qr() -> QRCode:
+    """i create the discovery key material and sharing qr payload."""
     private_key = ec.generate_private_key(ec.SECP256R1())
     public_key = private_key.public_key()
 
@@ -84,6 +85,7 @@ def generate_qr() -> QRCode:
 
 
 def decrypt_qrcode_record(buffer: bytes, keychain: HiddenKeychain) -> bytes:
+    """i recover the hidden endpoint name using the qr key material."""
     iv = buffer[:12]
     tag = buffer[-16:]
     ciphertext = buffer[12:-16]

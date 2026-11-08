@@ -24,6 +24,7 @@ MAX_DEVICE_NAME_BYTES = 255
 
 
 def get_interfaces() -> list[str]:
+    """i list the local network interfaces eligible for discovery."""
     interfaces: list[str] = []
     for ifa in NETWORK_BASE_PATH.iterdir():
         carrier = ifa.joinpath("carrier")
@@ -39,9 +40,11 @@ def get_interfaces() -> list[str]:
 
 class IPV4Runner:
     def __init__(self) -> None:
+        """i initialize the ipv4runner state and its required resources."""
         self.aiozc: AsyncZeroconf | None = None
 
     async def register_services(self, infos: list[AsyncServiceInfo]) -> None:
+        """i register the receiver advertisements with the discovery service."""
         self.aiozc = AsyncZeroconf(ip_version=IPVersion.V4Only)
         tasks = [self.aiozc.async_register_service(info) for info in infos]  # type: ignore
         background_tasks = await asyncio.gather(*tasks)  # type: ignore
@@ -51,6 +54,7 @@ class IPV4Runner:
         await asyncio.Event().wait()
 
     async def unregister_services(self, infos: list[AsyncServiceInfo]) -> None:
+        """i remove the receiver advertisements from the discovery service."""
         assert self.aiozc is not None  # noqa: S101 - escape hatch for the type checker
         tasks = [self.aiozc.async_unregister_service(info) for info in infos]  # type: ignore
         background_tasks = await asyncio.gather(*tasks)  # type: ignore
@@ -59,6 +63,7 @@ class IPV4Runner:
 
 
 def make_service_name(endpoint_id: bytes) -> bytearray:
+    """i encode the endpoint identifier into the discovery service name."""
     array = bytearray()
 
     array.append(0x23)  # PCP
@@ -78,6 +83,7 @@ class EndpointInfo(NamedTuple):
 
 
 def parse_endpoint_info(n: bytes) -> EndpointInfo:
+    """i decode the advertised visibility, device type, name, and extra records."""
     decoded = from_url64(n.decode("utf-8"))
     buffer = io.BytesIO(decoded)
     flags = buffer.read(1)[0]
@@ -104,6 +110,7 @@ def parse_endpoint_info(n: bytes) -> EndpointInfo:
 
 
 def make_n(*, visible: bool, type: Type, name: bytes) -> bytearray:
+    """i encode the endpoint information used by nearby discovery."""
     n = bytearray()
 
     # n record:
@@ -132,6 +139,7 @@ async def make_service(
     endpoint_id: bytes,
     interface_info: InterfaceInfo,
 ) -> AsyncServiceInfo:
+    """i describe the visible receiver as a discoverable network service."""
     _name = to_url64(make_service_name(endpoint_id))
     n = make_n(visible=visible, type=type_, name=name)
 
@@ -145,6 +153,7 @@ async def make_service(
 
 
 async def get_interface_info() -> InterfaceInfo:
+    """i select the listening addresses and an available receiving port."""
     ips: list[str] = []
 
     ip = os.environ.get("LQUICKAIR_IP") or os.environ.get("QUICKSHARE_IP")

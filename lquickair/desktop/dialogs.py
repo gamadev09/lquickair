@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 
 def show_received_text(app: LQuickAir, title: str, text: str) -> None:
+    """i display received text in a scrollable popup with a copy action."""
     popup = Gtk.Window(
         title=title or "Received text",
         transient_for=app.window,
@@ -44,6 +45,7 @@ def show_received_text(app: LQuickAir, title: str, text: str) -> None:
     copy.add_css_class("suggested-action")
 
     def copy_text(button: Gtk.Button) -> None:
+        """i copy the received text to the clipboard and confirm the action."""
         popup.get_clipboard().set(text)
         button.set_label("Copied!")
 

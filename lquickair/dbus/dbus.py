@@ -9,6 +9,7 @@ async def get_proxy_object(
     path: str,
     introspection: Any = None,
 ) -> Any:
+    """i inspect the remote service and return its dbus proxy."""
     if introspection is None:
         introspection = await bus.introspect(
             name,

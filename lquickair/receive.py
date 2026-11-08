@@ -53,6 +53,7 @@ __all__ = (
 
 
 def to_pin(bytes_: bytes) -> str:
+    """i turn the handshake authentication bytes into the displayed verification code."""
     k_hash_modulo = 9973
     k_hash_base_multiplier = 31
 
@@ -78,6 +79,7 @@ class ShareRequest:
         names: tuple[str, ...] = (),
         files_only: bool = False,
     ) -> None:
+        """i initialize the sharerequest state and its required resources."""
         self.respond: asyncio.Future[bool] = asyncio.Future()
         self.done: asyncio.Future[list[Result]] = asyncio.Future()
         self.header: offline_wire_formats.PayloadTransferFramePayloadHeader = header
@@ -87,10 +89,12 @@ class ShareRequest:
         self.files_only = files_only
 
     async def accept(self) -> list[Result]:
+        """i approve the request and wait for the received results."""
         self.respond.set_result(True)
         return await self.done
 
     async def reject(self) -> None:
+        """i decline the request and wait for the session to finish."""
         self.respond.set_result(False)
         await self.done
 
@@ -102,6 +106,7 @@ class ReceiveMode(enum.Enum):
 
 
 def _generate_accept() -> wire_format.Frame:
+    """i build the response that accepts an incoming share."""
     return wire_format.Frame(
         version=wire_format.FrameVersion.V1,
         v1=wire_format.V1Frame(
@@ -115,7 +120,7 @@ def _generate_accept() -> wire_format.Frame:
 
 class ReceiveConnection(NearbyConnection):
     async def _exchange_connection_response_server(self) -> None:
-        """Read CONNECTION_RESPONSE, send ours."""
+        """i read the client response and send the local connection response."""
         data = await self._backend.recv()
         client_response = offline_wire_formats.OfflineFrame().parse(data)
         os_name = offline_wire_formats.OsInfoOsType(
@@ -126,6 +131,7 @@ class ReceiveConnection(NearbyConnection):
         await self._backend.send(bytes(connection_response))
 
     async def upgrade_server(self) -> bool:
+        """i negotiate session keys and switch the receiver to the encrypted channel."""
         keychain = await do_server_key_exchange(self._backend)
         if keychain is None:
             return False
@@ -143,6 +149,7 @@ class ReceiveConnection(NearbyConnection):
         name: str,
         output_dir: Path = Path("downloads"),
     ) -> None:
+        """i request consent and assemble the accepted files, text, or credentials."""
         receive_mode: ReceiveMode | None = None
         expected_payload_ids: dict[
             int,
@@ -317,6 +324,7 @@ async def _handle_client(
     endpoint_id: bytes,
     output_dir: Path = Path("downloads"),
 ) -> None:
+    """i establish the incoming session before processing its shared payloads."""
     start = time.perf_counter()
     ip, port = writer.get_extra_info("peername")
     logger.debug("Connection from %s:%d", ip, port)
@@ -362,6 +370,7 @@ async def _socket_server(
     endpoint_id: bytes,
     output_dir: Path = Path("downloads"),
 ) -> None:
+    """i listen for incoming connections and close the listener during cancellation."""
     server = await asyncio.start_server(
         lambda reader, writer: _handle_client(
             requests, reader, writer, endpoint_id=endpoint_id, output_dir=output_dir
@@ -380,7 +389,7 @@ async def receive(
     output_dir: Path = Path("downloads"),
     device_name: str = NAME,
 ) -> AsyncIterator[ShareRequest]:
-    """Receive something over Quick Share. Runs forever.
+    """i receive something over quick share. runs forever.
 
     This function registers an mDNS service and opens a socket server to receive data.
     If firewalld is available, it temporarily reconfigures firewalld to allow incoming connections on the port.
@@ -399,7 +408,6 @@ async def receive(
             async for request in receive():
                 results = await request.accept()
                 print(results)
-
     """  # noqa: E501
     if endpoint_id and len(endpoint_id) != 4:  # noqa: PLR2004, this is not a magic number
         msg = "endpoint_id must be 4 bytes (and in ASCII)"
@@ -441,6 +449,7 @@ async def receive(
 
 
 async def _start_mdns_service(services: list[AsyncServiceInfo]) -> None:
+    """i advertise the receiving endpoint and remove it during cancellation."""
     runner = IPV4Runner()
     try:
         await runner.register_services(services)

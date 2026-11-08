@@ -18,11 +18,13 @@ extern "C" {
 
 namespace py = pybind11;
 
+// i translate the current system error into a python-visible exception.
 static void throw_errno(const char* what)
 {
     throw std::system_error(errno, std::generic_category(), what);
 }
 
+// i normalize the supplied service identifier into a bluez uuid.
 static uuid_t parse_uuid(const std::string& s)
 {
     uuid_t u;
@@ -55,6 +57,7 @@ static uuid_t parse_uuid(const std::string& s)
     return u;
 }
 
+// i expose the native bluetooth types and socket helpers to python.
 PYBIND11_MODULE(_rfcomm, m)
 {
     m.doc() = "pybind11 bindings for the BlueZ RFCOMM C API";
@@ -145,22 +148,27 @@ PYBIND11_MODULE(_rfcomm, m)
             memcpy(&info, s.data(), sizeof(info));
             return info; }, py::arg("raw"));
 
+    // i parse the text address into its native bluetooth representation.
     m.def("str2ba", [](const std::string& str) {
         bdaddr_t ba;
         if (::str2ba(str.c_str(), &ba) != 0)
             throw std::invalid_argument("invalid BD address: " + str);
         return ba; }, py::arg("str"), "Parse a colon-separated BD address string into a bdaddr_t.");
 
+    // i format the native bluetooth address for display.
     m.def("ba2str", [](const bdaddr_t& ba) {
         char str[18];
         if (::ba2str(&ba, str) < 0)
             throw std::runtime_error("ba2str failed");
         return std::string(str); }, py::arg("ba"), "Format a bdaddr_t as a colon-separated address string.");
 
+    // i copy the source bluetooth address into the destination.
     m.def("bacpy", [](bdaddr_t& dst, const bdaddr_t& src) { ::bacpy(&dst, &src); }, py::arg("dst"), py::arg("src"), "Copy src into dst (in-place mutation of dst).");
 
+    // i compare two native bluetooth addresses.
     m.def("bacmp", [](const bdaddr_t& ba1, const bdaddr_t& ba2) { return ::bacmp(&ba1, &ba2); }, py::arg("ba1"), py::arg("ba2"), "Compare two bdaddr_t values; 0 if equal.");
 
+    // i create the native socket used by the bluetooth transport.
     m.def("make_rfcomm_socket", []() {
         int fd = ::socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
         if (fd < 0)
@@ -168,6 +176,7 @@ PYBIND11_MODULE(_rfcomm, m)
         return fd; }, "Create an RFCOMM socket; returns a raw file descriptor.\n"
                                           "Wrap with socket.socket(fileno=fd) for asyncio use.");
 
+    // i connect the socket to the remote bluetooth address and channel.
     m.def("connect_rfcomm", [](int fd, const std::string& bdaddr_str, uint8_t channel) {
         sockaddr_rc addr;
         memset(&addr, 0, sizeof(addr));
@@ -178,6 +187,7 @@ PYBIND11_MODULE(_rfcomm, m)
         if (::connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0)
             throw_errno("connect_rfcomm"); }, py::arg("fd"), py::arg("bdaddr_str"), py::arg("channel"), "Connect an RFCOMM socket fd to the given BD address and channel.");
 
+    // i bind the socket to the selected local bluetooth address and channel.
     m.def("bind_rfcomm", [](int fd, const std::string& bdaddr_str, uint8_t channel) {
         sockaddr_rc addr;
         memset(&addr, 0, sizeof(addr));
@@ -188,12 +198,14 @@ PYBIND11_MODULE(_rfcomm, m)
         if (::bind(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0)
             throw_errno("bind_rfcomm"); }, py::arg("fd"), py::arg("bdaddr_str"), py::arg("channel"), "Bind an RFCOMM socket fd to a local adapter address and channel.");
 
+    // i apply raw socket options such as the requested security level.
     m.def("setsockopt_bytes", [](int fd, int level, int optname, py::bytes data) {
             auto s = static_cast<std::string>(data);
             if (::setsockopt(fd, level, optname, s.data(),
                              static_cast<socklen_t>(s.size())) < 0)
                 throw_errno("setsockopt"); }, py::arg("fd"), py::arg("level"), py::arg("optname"), py::arg("data"), "setsockopt wrapper that accepts raw bytes (e.g. bt_security.pack()).");
 
+    // i return the native socket options as bytes.
     m.def("getsockopt_bytes", [](int fd, int level, int optname, socklen_t buflen) -> py::bytes {
             std::string buf(buflen, '\0');
             socklen_t len = buflen;
@@ -202,6 +214,7 @@ PYBIND11_MODULE(_rfcomm, m)
             buf.resize(len);
             return py::bytes(buf); }, py::arg("fd"), py::arg("level"), py::arg("optname"), py::arg("buflen"), "getsockopt wrapper that returns raw bytes (pass to rfcomm_conninfo.unpack()).");
 
+    // i look up the remote service channel using bluetooth service discovery.
     m.def("find_rfcomm_channel", [](const std::string& remote_str, const std::string& uuid_str) -> int {
             bdaddr_t remote;
             if (::str2ba(remote_str.c_str(), &remote) != 0)

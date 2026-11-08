@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 
 def build_window(app: LQuickAir) -> None:
+    """i assemble the main window and its send, receive, and settings sections."""
     app.window = Gtk.ApplicationWindow(application=app, title="lQuickAir")
     app.window.set_icon_name(APPLICATION_ID)
     app.window.add_css_class("lquickair")
@@ -58,6 +59,7 @@ def build_window(app: LQuickAir) -> None:
 
 
 def build_send_section(app: LQuickAir) -> Gtk.Widget:
+    """i build the file selection, recipient list, and transfer controls."""
     send_card = card()
     send_card.append(label("Send files", title=True))
     file_row = Gtk.Box(spacing=12)
@@ -100,6 +102,7 @@ def build_send_section(app: LQuickAir) -> Gtk.Widget:
 
 
 def build_receive_section(app: LQuickAir) -> Gtk.Widget:
+    """i build the receiving switch and destination summary."""
     receive_card = card()
     receive_row = Gtk.Box(spacing=12)
     receive_copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, hexpand=True)
@@ -117,6 +120,7 @@ def build_receive_section(app: LQuickAir) -> Gtk.Widget:
 
 
 def build_settings_section(app: LQuickAir) -> Gtk.Widget:
+    """i assemble the collapsible appearance and sharing preferences."""
     preferences = Gtk.Expander(label="Settings")
     settings = card()
     settings.add_css_class("lquickair-content")
@@ -140,6 +144,7 @@ def build_settings_section(app: LQuickAir) -> Gtk.Widget:
 
 
 def build_identity_preferences(app: LQuickAir) -> Gtk.Box:
+    """i build the controls for changing the advertised pc name."""
     settings = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
     settings.append(label("Your PC name", title=True))
     identity_row = Gtk.Box(spacing=12)
@@ -156,6 +161,7 @@ def build_identity_preferences(app: LQuickAir) -> Gtk.Box:
 
 
 def build_receive_folder_preferences(app: LQuickAir) -> Gtk.Box:
+    """i build the destination summary and folder chooser button."""
     settings = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
     settings.append(label("Save received files to", title=True))
     folder_row = Gtk.Box(spacing=12)
@@ -175,6 +181,7 @@ def build_receive_folder_preferences(app: LQuickAir) -> Gtk.Box:
 
 
 def build_acceptance_preferences(app: LQuickAir) -> Gtk.Box:
+    """i build the remembered-name acceptance controls and policy explanation."""
     settings = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
     auto_row = Gtk.Box(spacing=12)
     auto_label = label("Auto-accept files from remembered names")

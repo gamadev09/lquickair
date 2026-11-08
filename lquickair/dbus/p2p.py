@@ -39,7 +39,7 @@ _WIFI_5GHZ_MAX_FREQ_MHZ = 5825
 
 
 def freq_to_band(frequency: int) -> str:
-    """Convert frequency (MHz) to band."""
+    """i classify a wireless frequency into its supported radio band."""
     if _WIFI_24GHZ_BAND_MIN_FREQ_MHZ <= frequency <= _WIFI_24GHZ_BAND_MAX_FREQ_MHZ:
         return "bg"
     if _WIFI_5GHZ_BAND_MIN_FREQ_MHZ <= frequency <= _WIFI_5GHZ_BAND_MAX_FREQ_MHZ:
@@ -48,7 +48,7 @@ def freq_to_band(frequency: int) -> str:
 
 
 def freq_to_channel(frequency: int) -> int:
-    """Convert frequency (MHz) to channel number."""
+    """i convert the wireless frequency to a channel number."""
     if _WIFI_24GHZ_MIN_FREQ_MHZ <= frequency <= _WIFI_24GHZ_MAX_FREQ_MHZ:
         return (frequency - _WIFI_24GHZ_CHANNEL_OFFSET) // 5
 
@@ -58,7 +58,7 @@ def freq_to_channel(frequency: int) -> int:
 
 
 def static_ip_from_gateway(gateway: str) -> str:
-    """Derive a static IP address from the gateway by picking a different last octet."""
+    """i derive the client address from the peer network gateway."""
     parts = gateway.split(".")
     last = int(parts[-1])
     last = (last + 1) % 255
@@ -67,6 +67,7 @@ def static_ip_from_gateway(gateway: str) -> str:
 
 
 async def _find_wifi_device_path(bus: MessageBus) -> str:
+    """i locate the network manager device supporting the requested interface."""
     nm = await get_proxy_object(bus, _NM, _NM_PATH)
     nm_iface = nm.get_interface(_NM)
     for device_path in await nm_iface.call_get_all_devices():
@@ -79,6 +80,7 @@ async def _find_wifi_device_path(bus: MessageBus) -> str:
 
 
 async def _wait_for_activated(bus: MessageBus, ac_path: str, timeout: float) -> None:
+    """i wait for the network manager connection to become active."""
     ac = await get_proxy_object(bus, _NM, ac_path)
     ac_iface = ac.get_interface(f"{_NM}.Connection.Active")
 
@@ -93,6 +95,7 @@ async def _wait_for_activated(bus: MessageBus, ac_path: str, timeout: float) -> 
     queue: asyncio.Queue[int] = asyncio.Queue()
 
     def _on_state_changed(new_state: int, *_: object) -> None:
+        """i resolve the pending connection when its network state changes."""
         queue.put_nowait(new_state)
 
     ac_iface.on_state_changed(_on_state_changed)
@@ -125,7 +128,7 @@ async def connect_p2p_group(
     *,
     timeout: float = 30.0,
 ) -> Callable[[], Awaitable[None]]:
-    """Connect to a WiFi Direct group and return a cleanup callback to disconnect from it."""
+    """i join the proposed peer network and return its connection details."""
     bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
     wifi_device_path = await _find_wifi_device_path(bus)
 
@@ -177,6 +180,7 @@ async def connect_p2p_group(
     logger.debug("Connected to P2P group %r", ssid)
 
     async def destroy_p2p_group() -> None:
+        """i remove the temporary peer network connection."""
         with contextlib.suppress(Exception):
             await nm_iface.call_deactivate_connection(ac_path)
         with contextlib.suppress(Exception):

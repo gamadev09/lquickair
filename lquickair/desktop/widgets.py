@@ -4,6 +4,7 @@ from .gtk import Gtk
 
 
 def label(text: str, *, muted: bool = False, title: bool = False) -> Gtk.Label:
+    """i create a wrapping label with the requested emphasis."""
     label = Gtk.Label(label=text, xalign=0, wrap=True)
     if muted:
         label.add_css_class("muted")
@@ -13,13 +14,14 @@ def label(text: str, *, muted: bool = False, title: bool = False) -> Gtk.Label:
 
 
 def card() -> Gtk.Box:
+    """i create a consistently spaced container for a section."""
     card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
     card.add_css_class("card")
     return card
 
 
 def set_margins(widget: Gtk.Widget, margin: int) -> None:
-    """Apply equal spacing on all four sides."""
+    """i apply equal spacing on all four sides."""
     widget.set_margin_top(margin)
     widget.set_margin_bottom(margin)
     widget.set_margin_start(margin)

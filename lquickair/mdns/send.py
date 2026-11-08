@@ -17,11 +17,13 @@ logger = getLogger(__name__)
 
 class AsyncRunner:
     def __init__(self) -> None:
+        """i initialize the asyncrunner state and its required resources."""
         self.result: asyncio.Queue[AsyncServiceInfo] = asyncio.Queue()
         self.aiobrowser: AsyncServiceBrowser | None = None
         self.aiozc: AsyncZeroconf | None = None
 
     async def async_run(self) -> None:
+        """i start browsing the network for compatible receivers."""
         self.aiozc = AsyncZeroconf(ip_version=IPVersion.V4Only)
 
         services = ["_FC9F5ED42C8A._tcp.local."]
@@ -33,6 +35,7 @@ class AsyncRunner:
         await asyncio.Event().wait()
 
     async def async_close(self) -> None:
+        """i close the network discovery browser and its resources."""
         assert self.aiozc is not None  # noqa: S101 - escape hatch for the type checker
         assert self.aiobrowser is not None  # noqa: S101 - escape hatch for the type checker
         await self.aiobrowser.async_cancel()
@@ -45,6 +48,7 @@ class AsyncRunner:
         name: str,
         state_change: ServiceStateChange,
     ) -> None:
+        """i schedule a lookup when a discoverable service changes."""
         if state_change is not ServiceStateChange.Added:
             return
         logger.debug("Discovered Quick Share service: %s", name)
@@ -62,6 +66,7 @@ class AsyncRunner:
         service_type: str,
         name: str,
     ) -> None:
+        """i resolve the service details and queue a compatible recipient."""
         info = AsyncServiceInfo(service_type, name)
         await info.async_request(zeroconf, 3000)
 
@@ -72,6 +77,7 @@ class AsyncRunner:
 async def discover_services(
     facts: Facts,
 ) -> asyncio.Queue[AsyncServiceInfo]:  # TODO: actually timeout
+    """i discover compatible nearby recipients over the available services."""
     if facts.ble:
         create_task(trigger_devices())
     else:

@@ -30,32 +30,35 @@ class Feature(abc.ABC):
     """A feature the system has, such as Bluetooth, Wi-Fi, etc."""
 
     def __init__(self, name: str, *, advice: str | None = None) -> None:
+        """i initialize the feature state and its required resources."""
         self.name: str = name
         self.advice: str | None = advice
         self._state: bool | None = None
 
     @property
     def state(self) -> bool:
-        """Whether the system has this feature."""
+        """i report the feature state after its availability check completes."""
         if self._state is None:
             error = "Feature {} has not been checked yet."
             raise RuntimeError(error.format(self.name))
         return self._state
 
     async def collect(self) -> None:
-        """Collect the fact about this feature."""
+        """i check the feature and remember its availability."""
         self._state = await self.check()
 
     @abc.abstractmethod
     async def check(self) -> bool:
-        """Check if the system has this feature."""
+        """i check whether the local feature feature is available."""
 
 
 class BLE(Feature):
     def __init__(self) -> None:
+        """i initialize the ble state and its required resources."""
         super().__init__("BLE", advice=_ADVICE_BLE)
 
     async def check(self) -> bool:
+        """i check whether the local ble feature is available."""
         try:
             result = await get_advertisement_manager()
         except Exception:
@@ -67,9 +70,11 @@ class BLE(Feature):
 
 class Bluetooth(Feature):
     def __init__(self) -> None:
+        """i initialize the bluetooth state and its required resources."""
         super().__init__("Bluetooth", advice=_ADVICE_BLUETOOTH)
 
     async def check(self) -> bool:
+        """i check whether the local bluetooth feature is available."""
         try:
             bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
             root_obj = await get_proxy_object(bus, BLUEZ, "/")
@@ -83,9 +88,11 @@ class Bluetooth(Feature):
 
 class NetworkManager(Feature):
     def __init__(self) -> None:
+        """i initialize the networkmanager state and its required resources."""
         super().__init__("NetworkManager", advice=_ADVICE_NETWORK_MANAGER)
 
     async def check(self) -> bool:
+        """i check whether the local networkmanager feature is available."""
         try:
             bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
             await get_proxy_object(
@@ -105,6 +112,7 @@ class Facts(NamedTuple):
 
 
 async def collect_facts() -> Facts:
+    """i check which bluetooth and network features are available locally."""
     ble = BLE()
     bluetooth = Bluetooth()
     network_manager = NetworkManager()

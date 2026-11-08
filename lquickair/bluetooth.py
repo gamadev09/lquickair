@@ -28,12 +28,14 @@ UUIDS = [
 
 class BluetoothDevice:
     def __init__(self, name: str, address: str, channel: int) -> None:
+        """i initialize the bluetoothdevice state and its required resources."""
         self.name = name
         self.address = address
         self.channel = channel
         self.endpoint_info = parse_bluetooth_device_name(name)
 
-    def __repr__(self) -> str:  # noqa: D105
+    def __repr__(self) -> str:
+        """i describe the discovered bluetooth device for diagnostic output."""
         return (
             f"BluetoothDevice(name={self.name!r}, "
             f"address={self.address!r}, "
@@ -43,6 +45,7 @@ class BluetoothDevice:
 
 
 async def find_receiving_devices() -> AsyncGenerator[BluetoothDevice, None]:
+    """i discover nearby bluetooth devices advertising receive mode."""
     logger.debug("Connecting to the system bus")
     bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
     logger.info("Connected to the system bus")
@@ -98,7 +101,10 @@ async def find_receiving_devices() -> AsyncGenerator[BluetoothDevice, None]:
 
 
 def register_new_devices(object_manager: Any, queue: asyncio.Queue[str]) -> None:
+    """i watch bluez for new devices and queue compatible recipients."""
+
     def on_interfaces_added(object_path: str, interfaces: dict[str, Any]) -> None:
+        """i inspect newly advertised interfaces for compatible bluetooth devices."""
         if "org.bluez.Device1" in interfaces:
             logger.debug("Found new device at %s", object_path)
             queue.put_nowait(object_path)
@@ -107,6 +113,7 @@ def register_new_devices(object_manager: Any, queue: asyncio.Queue[str]) -> None
 
 
 async def connect_bluetooth_device(device: BluetoothDevice) -> socket.socket:
+    """i connect to the discovered device over its rfcomm channel."""
     logger.info(
         "Connecting to device %s (%s) on channel %d", device.name, device.address, device.channel
     )
@@ -131,7 +138,7 @@ def parse_bluetooth_device_name(name: str) -> EndpointInfo:
     # 16	    N bytes	    endpoint_info	       Capped at 131 bytes
     # 16+N	    1 byte	    uwb_address_length	   Optional if bytes remain
     # 17+N	    M bytes	    uwb_address	Optional   UWB address (2 or 8 bytes)
-
+    """i decode the endpoint metadata embedded in the bluetooth name."""
     blob = from_url64(name)
 
     version_and_pcp = blob[0]

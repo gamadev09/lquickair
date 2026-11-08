@@ -12,7 +12,7 @@ from lquickair.mdns.send import trigger_devices
 
 
 async def send(file: str) -> None:
-    """Send one file to the first connectable device discovered."""
+    """i send one file to the first connectable device discovered."""
     discovery = await lquickair.discover_services()
     discovery.qr_code.print()
     async for device in discovery:
@@ -22,7 +22,7 @@ async def send(file: str) -> None:
 
 
 async def main(argv: list[str]) -> None:
-    """Parse the example mode and run it until completed or interrupted."""
+    """i parse the example mode and run it until completed or interrupted."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("send", "receive", "advertise"))
     parser.add_argument("file", nargs="?", help="File to send in send mode")

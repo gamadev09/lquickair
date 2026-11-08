@@ -32,7 +32,7 @@ logger = getLogger(__name__)
 
 
 def to_twos_complement(n: int) -> bytes:
-    """Convert an integer to a two's complement byte array.
+    """i convert an integer to a two's complement byte array.
 
     Args:
         n (int): The integer to convert
@@ -44,7 +44,7 @@ def to_twos_complement(n: int) -> bytes:
 
 
 def from_twos_complement(data: bytes) -> int:
-    """Convert a two's complement byte array to an integer.
+    """i convert a two's complement byte array to an integer.
 
     Args:
         data (bytes): The two's complement byte array
@@ -59,7 +59,7 @@ async def parse_client_init(
     ukey_client_init: securegcm.Ukey2ClientInit,
     backend: ConnectionBackend,
 ) -> tuple[str, securegcm.Ukey2ClientInitCipherCommitment] | None:
-    """Parse a CLIENT_INIT message.
+    """i parse a client_init message.
 
     Args:
         ukey_client_init (securegcm.Ukey2ClientInit): The CLIENT_INIT message
@@ -127,7 +127,7 @@ async def send_server_init(
     cipher_commitment: securegcm.Ukey2ClientInitCipherCommitment,
     backend: ConnectionBackend,
 ) -> bytes:
-    """Send a SERVER_INIT message.
+    """i send a server_init message.
 
     Args:
         private_key (ec.EllipticCurvePrivateKey): The server's private key
@@ -172,7 +172,7 @@ async def parse_client_finished(
     commitment: securegcm.Ukey2ClientInitCipherCommitment,
     backend: ConnectionBackend,
 ) -> ec.EllipticCurvePublicKey | None:
-    """Parse a CLIENT_FINISH message.
+    """i parse a client_finish message.
 
     Args:
         raw_message (bytes): The raw CLIENT_FINISH message
@@ -220,7 +220,7 @@ async def parse_client_finished(
 def encode_public_key(
     public_key: ec.EllipticCurvePublicKey,
 ) -> securemessage.GenericPublicKey:
-    """Encode an EllipticCurvePublicKey as a GenericPublicKey.
+    """i encode an ellipticcurvepublickey as a genericpublickey.
 
     Args:
         public_key (ec.EllipticCurvePublicKey): The public key to encode
@@ -242,7 +242,7 @@ def encode_public_key(
 def decode_public_key(
     generic_key: securemessage.GenericPublicKey,
 ) -> ec.EllipticCurvePublicKey:
-    """Decode a GenericPublicKey as an EllipticCurvePublicKey.
+    """i decode a genericpublickey as an ellipticcurvepublickey.
 
     Args:
         generic_key (securemessage.GenericPublicKey): The public key to decode
@@ -272,7 +272,7 @@ def derive_keys(
     private_key: ec.EllipticCurvePrivateKey,
     peer_public_key: ec.EllipticCurvePublicKey,
 ) -> Keychain:
-    """Derive the keys for a session.
+    """i derive the keys for a session.
 
     Args:
         m1 (bytes): The first message (CLIENT_INIT or SERVER_INIT)
@@ -354,7 +354,7 @@ def derive_keys(
 
 
 def swap_keychain(keychain: Keychain) -> Keychain:
-    """Swap the perspective of a keychain.
+    """i swap the perspective of a keychain.
 
     Args:
         keychain (Keychain): The keychain to swap
@@ -372,7 +372,7 @@ def swap_keychain(keychain: Keychain) -> Keychain:
 
 
 async def do_server_key_exchange(backend: ConnectionBackend) -> Keychain | None:
-    """Perform a server key exchange.
+    """i perform a server key exchange.
 
     Args:
         backend (ConnectionBackend): The protocol backend
@@ -428,7 +428,7 @@ async def do_server_key_exchange(backend: ConnectionBackend) -> Keychain | None:
 
 
 async def do_client_key_exchange(backend: ConnectionBackend) -> Keychain | None:
-    """Perform a client key exchange.
+    """i perform a client key exchange.
 
     Args:
         backend (ConnectionBackend): The protocol backend
@@ -505,7 +505,7 @@ async def ukey_alert(
     alert_message: str,
     backend: ConnectionBackend,
 ) -> None:
-    """Send an alert message and close the connection.
+    """i send an alert message and close the connection.
 
     Args:
         alert_type (securegcm.Ukey2AlertAlertType): The alert type
@@ -526,7 +526,7 @@ def make_alert(
     alert_type: securegcm.Ukey2AlertAlertType,
     error_message: str,
 ) -> securegcm.Ukey2Message:
-    """Construct an alert message.
+    """i construct an alert message.
 
     Args:
         alert_type (securegcm.Ukey2AlertAlertType): The alert type

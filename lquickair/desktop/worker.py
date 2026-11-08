@@ -27,6 +27,7 @@ class TransferWorker:
     """Keep asyncio and all protocol objects on one dedicated thread."""
 
     def __init__(self, emit: EventSink) -> None:
+        """i initialize the transferworker state and its required resources."""
         self.emit = emit
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.run, daemon=True)
@@ -35,6 +36,7 @@ class TransferWorker:
         self.thread.start()
 
     def run(self) -> None:
+        """i run the protocol event loop on its dedicated worker thread."""
         asyncio.set_event_loop(self.loop)
         self.loop.set_exception_handler(
             lambda _loop, context: self.emit(
@@ -48,9 +50,11 @@ class TransferWorker:
         self,
         coroutine: Coroutine[Any, Any, TaskResult],
     ) -> concurrent.futures.Future[TaskResult]:
+        """i schedule a coroutine safely on the worker event loop."""
         future = asyncio.run_coroutine_threadsafe(coroutine, self.loop)
 
         def completed(result: concurrent.futures.Future[TaskResult]) -> None:
+            """i forward task failures to the interface and ignore requested cancellation."""
             try:
                 result.result()
             except (concurrent.futures.CancelledError, asyncio.CancelledError):
@@ -69,7 +73,7 @@ class TransferWorker:
         return future
 
     async def discover(self) -> None:
-
+        """i report connectable recipients discovered over the available transports."""
         discovery = await lquickair.discover_services()
         self.emit("ready", discovery.facts)
         async for device in discovery:
@@ -88,6 +92,7 @@ class TransferWorker:
         files: Sequence[str],
         device_name: str | None = None,
     ) -> None:
+        """i send the selected files sequentially and report the session status."""
         for file in files:
             self.emit("status", f"Sending {Path(file).name} · accept on your phone…")
             if device_name is None:
@@ -101,7 +106,7 @@ class TransferWorker:
         device_name: str = "lQuickAir",
         output_dir: str | None = None,
     ) -> None:
-
+        """i listen for incoming shares and forward their consent requests to the interface."""
         async for request in lquickair.receive(
             output_dir=Path(output_dir) if output_dir else default_receive_folder(),
             device_name=device_name,
@@ -114,7 +119,7 @@ class TransferWorker:
             )
 
     async def respond(self, key: int, *, accept: bool) -> None:
-
+        """i apply the consent decision and report the received results."""
         request = self.requests.pop(key)
         if accept:
             self.emit("status", "Receiving…")
@@ -137,6 +142,7 @@ class TransferWorker:
             self.emit("status", "Incoming transfer declined.")
 
     async def shutdown(self) -> None:
+        """i cancel outstanding operations before the process exits."""
         current = asyncio.current_task()
         tasks = [task for task in asyncio.all_tasks() if task is not current]
         for task in tasks:
@@ -144,5 +150,6 @@ class TransferWorker:
         await asyncio.gather(*tasks, return_exceptions=True)
 
     def close(self) -> None:
+        """i stop the active operations before closing the application."""
         future = asyncio.run_coroutine_threadsafe(self.shutdown(), self.loop)
         future.add_done_callback(lambda _: self.loop.call_soon_threadsafe(self.loop.stop))

@@ -102,6 +102,7 @@ ignore = [
     "D102", # missing docstring in public method
     "D103", # missing docstring in public function
     "D107", # missing docstring in __init__
+    "D403", # function summaries intentionally use lowercase first-person prose
 
     # disabled because of `ruff format`
     "COM812",

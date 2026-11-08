@@ -13,25 +13,25 @@ APPLICATION_ID = "io.github.lquickair.Desktop"
 
 
 def asset_path(*, symbolic: bool = False) -> Path:
-    """Locate the exported vector artwork in the installed package."""
+    """i locate the exported vector artwork in the installed package."""
     suffix = "-symbolic" if symbolic else ""
     return Path(str(files(__package__).joinpath("assets", f"{APPLICATION_ID}{suffix}.svg")))
 
 
 def register_window_icon() -> None:
-    """Make the packaged icon available without relying on an installed icon theme."""
+    """i make the packaged icon available without relying on an installed icon theme."""
     theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
     theme.add_search_path(str(asset_path().parent))
     Gtk.Window.set_default_icon_name(APPLICATION_ID)
 
 
 def notification_icon() -> Gio.Icon:
-    """Embed the grayscale artwork so notification delivery needs no source path."""
+    """i embed the grayscale artwork so notification delivery needs no source path."""
     return Gio.BytesIcon.new(GLib.Bytes.new(asset_path(symbolic=True).read_bytes()))
 
 
 def install_desktop_entry(data_home: Path | None = None) -> None:
-    """Register this Python installation with the user's application launcher."""
+    """i register this python installation with the user's application launcher."""
     if data_home is None:
         data_home = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
     for symbolic in (False, True):

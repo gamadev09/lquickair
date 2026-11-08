@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 async def trigger_devices() -> None:
+    """i advertise the nearby sharing trigger so phones expose their receive services."""
     adv_manager = await get_advertisement_manager()
     await adv_manager.call_register_advertisement(_ADV_PATH, {})
 
@@ -28,6 +29,7 @@ async def trigger_devices() -> None:
 
 
 async def get_advertisement_manager() -> Any:
+    """i locate the bluez interface used to advertise nearby sharing."""
     bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
     root_obj = await get_proxy_object(bus, BLUEZ, "/")
     adapter_path = await get_bluetooth_adapter(root_obj)
@@ -44,6 +46,7 @@ async def get_advertisement_manager() -> Any:
 
 
 async def get_bluetooth_adapter(root_obj: Any) -> str:
+    """i select an available bluez bluetooth adapter."""
     om = root_obj.get_interface("org.freedesktop.DBus.ObjectManager")
     objects = await om.call_get_managed_objects()
 

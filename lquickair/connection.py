@@ -24,6 +24,7 @@ _PayloadHeader = offline_wire_formats.PayloadTransferFramePayloadHeader
 
 
 def _frame_type_name(frame_type: int) -> str:
+    """i describe a transport frame type for diagnostic logging."""
     try:
         name = offline_wire_formats.V1FrameFrameType(frame_type).name
     except ValueError:
@@ -33,6 +34,7 @@ def _frame_type_name(frame_type: int) -> str:
 
 
 def _bw_event_name(event_type: int) -> str:
+    """i describe a bandwidth upgrade event for diagnostic logging."""
     try:
         name = offline_wire_formats.BandwidthUpgradeNegotiationFrameEventType(event_type).name
     except ValueError:
@@ -49,6 +51,7 @@ class NearbyConnection:
         *,
         endpoint_id: bytes,
     ) -> None:
+        """i initialize the nearbyconnection state and its required resources."""
         self._backend: ConnectionBackend = UnencryptedBackend(reader, writer)
         self._keep_alive_task: asyncio.Task[None] | None = None
         self._endpoint_id: bytes = endpoint_id
@@ -68,19 +71,23 @@ class NearbyConnection:
 
     @property
     def auth_string(self) -> bytes:
+        """i expose the session authentication bytes used for verification."""
         assert isinstance(self._backend, EncryptedBackend)  # noqa: S101
         return self._backend.auth_string
 
     async def send_bytes(self, data: bytes) -> None:
+        """i send bytes through the current transport backend."""
         await self._backend.send(data)
 
     async def recv_bytes(self) -> bytes:
+        """i receive bytes through the current transport backend."""
         return await self._backend.recv()
 
     async def _send_transport_frame(
         self,
         frame: offline_wire_formats.OfflineFrame,
     ) -> None:
+        """i serialize and send a transport control frame."""
         frame_type = frame.v1.type
         logger.log(SILLY, "Sending transport frame type=%s", _frame_type_name(frame_type))
         await self._backend.send(bytes(frame))
@@ -96,7 +103,7 @@ class NearbyConnection:
         offset: int = 0,
         total_size: int | None = None,
     ) -> None:
-        """Wrap data in PAYLOAD_TRANSFER."""
+        """i wrap and send an application payload as a transport frame."""
         logger.log(
             SILLY,
             "PAYLOAD_TRANSFER: id=%d type=%s flags=%02x len=%d offset=%d total=%s file=%s",
@@ -120,7 +127,7 @@ class NearbyConnection:
         await self._backend.send(frame_bytes)
 
     async def send_frame(self, frame: wire_format.Frame) -> None:
-        """Serialise a wire_format.Frame and send as a BYTES payload."""
+        """i serialize and send an application protocol frame."""
         data = bytes(frame)
         id_ = random.randint(0, 2**31 - 1)  # noqa: S311
         total = len(data)
@@ -149,7 +156,7 @@ class NearbyConnection:
         file_name: str,
         flags: int = 0,
     ) -> None:
-        """Send one chunk of a file payload."""
+        """i send one file chunk with its payload identifier and offset."""
         await self._send_payload_frame(
             chunk,
             id=id,
@@ -161,10 +168,12 @@ class NearbyConnection:
         )
 
     async def _handle_disconnection(self, _frame: offline_wire_formats.OfflineFrame) -> None:
+        """i handle the peer request to close the connection."""
         logger.debug("Received DISCONNECTION frame, closing connection")
         await self.close()
 
     async def _handle_keep_alive(self, _frame: offline_wire_formats.OfflineFrame) -> None:
+        """i process the peer heartbeat without exposing it as a shared payload."""
         logger.debug("Received KEEP_ALIVE frame, ignoring")
 
     def register_v1_handler(
@@ -172,12 +181,13 @@ class NearbyConnection:
         frame_type: offline_wire_formats.V1FrameFrameType,
         handler: Callable[[offline_wire_formats.OfflineFrame], Awaitable[None]],
     ) -> None:
+        """i register the callback for the selected transport frame type."""
         self._v1_registry[frame_type] = handler
 
     async def iter_payloads(
         self,
     ) -> AsyncIterator[tuple[_PayloadHeader, bytes]]:
-        """Yield complete (PayloadHeader, bytes) payloads."""
+        """i dispatch control frames and yield reconstructed application payloads."""
         incomplete: dict[int, io.BytesIO] = {}
         headers: dict[int, _PayloadHeader] = {}
 
@@ -234,11 +244,11 @@ class NearbyConnection:
                 yield original_header, payload
 
     def start_keep_alive(self) -> None:
-        """Start the background keep-alive task."""
+        """i start the periodic heartbeat for the active session."""
         self._keep_alive_task = create_task(self._keep_alive_loop())
 
     async def stop_keep_alive(self) -> None:
-        """Cancel and await the keep-alive task."""
+        """i cancel and await the session heartbeat."""
         if self._keep_alive_task is not None:
             self._keep_alive_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -246,6 +256,7 @@ class NearbyConnection:
             self._keep_alive_task = None
 
     async def _keep_alive_loop(self) -> None:
+        """i periodically send heartbeats while the session remains open."""
         frame = offline_wire_formats.OfflineFrame(
             version=offline_wire_formats.OfflineFrameVersion.V1,
             v1=offline_wire_formats.V1Frame(
@@ -264,6 +275,7 @@ class NearbyConnection:
         # 4. keep reading until we get SAFE_TO_CLOSE_PRIOR_CHANNEL
 
         # LAST_WRITE_TO_PRIOR_CHANNEL on the old channel.
+        """i synchronize the channel switch before closing the previous transport."""
         last_write = offline_wire_formats.OfflineFrame(
             version=offline_wire_formats.OfflineFrameVersion.V1,
             v1=offline_wire_formats.V1Frame(
@@ -356,7 +368,7 @@ class NearbyConnection:
         self._backend = last_backend
 
     async def close(self) -> None:
-        """Send DISCONNECTION and close the writer."""
+        """i stop the active operations before closing the application."""
         with contextlib.suppress(Exception):
             frame = offline_wire_formats.OfflineFrame(
                 version=offline_wire_formats.OfflineFrameVersion.V1,

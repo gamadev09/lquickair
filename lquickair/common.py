@@ -39,20 +39,24 @@ class Keychain(typing.NamedTuple):
 
 
 def get_interface_mac(interface: str) -> bytes:
+    """i read the mac address published for the selected network interface."""
     mac_path = NETWORK_BASE_PATH / interface / "address"
 
     return bytes.fromhex(mac_path.read_text().strip().replace(":", ""))
 
 
 def to_url64(data: bytes | bytearray) -> str:
+    """i encode bytes as url-safe base64 without padding."""
     return base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
 
 
 def from_url64(data: str) -> bytes:
+    """i restore base64 padding and decode the url-safe value."""
     return base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
 
 
 def create_task(*args: Any, **kwargs: Any) -> asyncio.Task[Any]:  # - Any is good enough for this
+    """i schedule a coroutine and track it for application shutdown."""
     task = asyncio.create_task(*args, **kwargs)
     tasks.append(task)
     return task
@@ -60,11 +64,13 @@ def create_task(*args: Any, **kwargs: Any) -> asyncio.Task[Any]:  # - Any is goo
 
 @atexit.register
 def shutdown() -> None:
+    """i cancel outstanding operations before the process exits."""
     for task in tasks:
         task.cancel()
 
 
 async def clear_tasks() -> None:
+    """i wait for tracked operations and tolerate their cancellation."""
     for task in tasks:
         with suppress(asyncio.CancelledError):
             await task
@@ -81,11 +87,13 @@ VERSION = 0b000
 
 
 def safe_assert(condition: bool, message: str | None = None) -> None:  # noqa: FBT001 - this is an 'assert'
+    """i reject an invalid protocol condition with an assertion error."""
     if not condition:
         raise AssertionError(message or "Assertion failed")
 
 
 async def read(reader: asyncio.StreamReader) -> bytes:
+    """i read the length prefix and then the complete transport message."""
     (length,) = struct.unpack(">I", await reader.readexactly(4))
     return await reader.readexactly(length)
 
@@ -100,6 +108,7 @@ def encrypt_bytes(
     keychain: Keychain,
     sequence_number: int,
 ) -> bytes:
+    """i encrypt and authenticate a message with the session keys."""
     device_to_device_message = securegcm.DeviceToDeviceMessage(
         sequence_number=sequence_number,
         message=data,
@@ -145,6 +154,7 @@ def encrypt_offline_frame(
     keychain: Keychain,
     sequence_number: int,
 ) -> bytes:
+    """i serialize a transport frame before encrypting it."""
     return encrypt_bytes(bytes(offline_frame), keychain, sequence_number)
 
 
@@ -158,6 +168,7 @@ def payloadify(  # noqa: PLR0913
     offset: int = 0,
     total_size: int | None = None,
 ) -> bytes:
+    """i wrap payload bytes with their transfer metadata and chunk flags."""
     payload_header = offline_wire_formats.PayloadTransferFramePayloadHeader(
         id=id,
         type=type,
@@ -187,6 +198,7 @@ def payloadify(  # noqa: PLR0913
 
 
 def decrypt_to_bytes(raw: bytes, keychain: Keychain) -> bytes:
+    """i authenticate and decrypt the incoming message into payload bytes."""
     secure_message = securemessage.SecureMessage().parse(raw)
 
     h = hmac.HMAC(keychain.receive_hmac_key, hashes.SHA256())
@@ -212,11 +224,13 @@ def decrypt(
     frame: securemessage.SecureMessage,
     keychain: Keychain,
 ) -> offline_wire_formats.OfflineFrame:
+    """i decode the decrypted payload as an offline protocol frame."""
     raw_message = decrypt_to_bytes(bytes(frame), keychain)
     return offline_wire_formats.OfflineFrame().parse(raw_message)
 
 
 def generate_connection_response() -> offline_wire_formats.OfflineFrame:
+    """i build the connection response identifying this system as linux."""
     return offline_wire_formats.OfflineFrame(
         version=offline_wire_formats.OfflineFrameVersion.V1,
         v1=offline_wire_formats.V1Frame(
@@ -235,6 +249,7 @@ def generate_connection_response() -> offline_wire_formats.OfflineFrame:
 def generate_paired_key_encryption(
     qr_code_handshake_data: bytes | None = None,
 ) -> wire_format.Frame:
+    """i build the paired-key frame for the compatibility handshake."""
     pke = wire_format.PairedKeyEncryptionFrame(
         secret_id_hash=bytes([0x00] * 6),
         signed_data=bytes([0x00] * 72),
@@ -252,10 +267,12 @@ def generate_paired_key_encryption(
 
 
 def derive_endpoint_id_from_mac(mac: bytes) -> bytes:
+    """i derive a repeatable endpoint identifier from the interface address."""
     return bytes(i & 0b0111111 for i in hashlib.blake2b(mac, digest_size=4).digest())
 
 
 def pick_mac_deterministically(interfaces: list[str]) -> bytes:
+    """i choose a repeatable local interface address for endpoint discovery."""
     interface = sorted(interfaces)[0]
     return get_interface_mac(interface)
 
@@ -263,8 +280,13 @@ def pick_mac_deterministically(interfaces: list[str]) -> bytes:
 def with_semaphore(
     sem: asyncio.Semaphore,
 ) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
+    """i limit concurrent calls using the supplied semaphore."""
+
     def deco(corof: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
+        """i attach the concurrency limit to the decorated operation."""
+
         async def wrapper(*args: Any, **kwargs: Any) -> T:
+            """i acquire the semaphore before calling the wrapped coroutine."""
             async with sem:
                 return await corof(*args, **kwargs)
 

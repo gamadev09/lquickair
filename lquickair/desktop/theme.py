@@ -31,7 +31,7 @@ DARK_PALETTE = {
 
 
 def stylesheet(theme: str) -> str:
-    """Return the scoped stylesheet for the selected appearance."""
+    """i return the scoped stylesheet for the selected appearance."""
     css = files(__package__).joinpath("style.css").read_text(encoding="utf-8")
     if theme == "dark":
         css = re.sub(r"#[0-9a-f]{6}", lambda match: DARK_PALETTE.get(match[0], match[0]), css)
@@ -40,7 +40,7 @@ def stylesheet(theme: str) -> str:
 
 
 def install_style(app: LQuickAir) -> None:
-    """Load the selected theme without replacing an existing display provider."""
+    """i apply the selected appearance while reusing the existing style provider."""
     provider = getattr(app, "style_provider", None)
     is_new_provider = provider is None
     if is_new_provider:
