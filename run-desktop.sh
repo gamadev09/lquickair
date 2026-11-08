@@ -21,4 +21,4 @@ fi
 # uv resolves the Python 3.10 requirement and builds the Bluetooth extension.
 # PyGObject is installed into that same environment via the desktop extra.
 "$desktop_uv" sync --python 3.10 --extra desktop
-exec "$desktop_uv" run --python 3.10 --extra desktop python gui.py
+exec "$desktop_uv" run --python 3.10 --extra desktop python -m lquickair.desktop

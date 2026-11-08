@@ -76,7 +76,7 @@ docs = ["furo>=2024.8.6", "myst-parser>=4.0.1", "sphinx>=8.1.3"]
 stubPath = "stubs"
 
 [tool.ruff]
-include = ["lquickair/*"]
+include = ["*.py", "*.pyi"]
 exclude = ["lquickair/protos/*", "docs/*", "*.cpp"]
 line-length = 100
 
@@ -118,6 +118,9 @@ omit = ["lquickair/protos/*"]
 
 [tool.coverage.report]
 exclude_also = ["pragma: no cover", "if TYPE_CHECKING:"]
+
+[project.scripts]
+lquickair = "lquickair.desktop.application:main"
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "session"

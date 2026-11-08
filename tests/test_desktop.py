@@ -1,26 +1,30 @@
 """Hardware-independent checks for the desktop's asyncio worker."""
+
 import asyncio
 import threading
 import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
 
-from gui import Backend
+from lquickair.desktop.worker import TransferWorker
 
 
-class BackendTests(unittest.TestCase):
+class TransferWorkerTests(unittest.TestCase):
     def setUp(self):
         self.events = []
         # This executor blocks AF_UNIX send(), including asyncio's wakeup pipe.
         # A test-only timer wakes the selector so thread scheduling can be checked.
-        original_run = Backend.run
+        original_run = TransferWorker.run
+
         def run_with_timer(worker):
             def tick():
                 worker.loop.call_later(0.01, tick)
+
             worker.loop.call_soon(tick)
             original_run(worker)
-        with patch.object(Backend, 'run', run_with_timer):
-            self.backend = Backend(lambda *event: self.events.append(event))
+
+        with patch.object(TransferWorker, "run", run_with_timer):
+            self.backend = TransferWorker(lambda *event: self.events.append(event))
 
     def tearDown(self):
         self.backend.close()
@@ -34,14 +38,14 @@ class BackendTests(unittest.TestCase):
             calls.append((file, threading.get_ident()))
             await asyncio.sleep(0)
 
-        self.backend.devices[('Phone', 'Bluetooth')] = SimpleNamespace(send=send)
+        self.backend.devices[("Phone", "Bluetooth")] = SimpleNamespace(send=send)
         future = self.backend.submit(
-            self.backend.send(('Phone', 'Bluetooth'), ['one.txt', 'two.txt'])
+            self.backend.send(("Phone", "Bluetooth"), ["one.txt", "two.txt"])
         )
         future.result(timeout=3)
-        self.assertEqual([file for file, _ in calls], ['one.txt', 'two.txt'])
+        self.assertEqual([file for file, _ in calls], ["one.txt", "two.txt"])
         self.assertTrue(all(ident != threading.get_ident() for _, ident in calls))
-        self.assertEqual(self.events[-1][0], 'sent')
+        self.assertEqual(self.events[-1][0], "sent")
 
     def test_cancel_stops_operation_without_finished_event(self):
         started = threading.Event()
@@ -54,27 +58,27 @@ class BackendTests(unittest.TestCase):
             finally:
                 stopped.set()
 
-        self.backend.devices['phone'] = SimpleNamespace(send=send)
-        future = self.backend.submit(self.backend.send('phone', ['one.txt']))
+        self.backend.devices["phone"] = SimpleNamespace(send=send)
+        future = self.backend.submit(self.backend.send("phone", ["one.txt"]))
         self.assertTrue(started.wait(timeout=3))
         future.cancel()
         self.assertTrue(stopped.wait(timeout=3))
-        self.assertNotIn('sent', [event[0] for event in self.events])
+        self.assertNotIn("sent", [event[0] for event in self.events])
 
     def test_errors_reach_ui(self):
         delivered = threading.Event()
         self.backend.emit = lambda *event: (self.events.append(event), delivered.set())
 
         async def fail():
-            raise OSError('Bluetooth disconnected')
+            raise OSError("Bluetooth disconnected")
 
-        with patch('gui.logging.exception'):
+        with patch("lquickair.desktop.worker.logger.exception"):
             future = self.backend.submit(fail())
             with self.assertRaises(OSError):
                 future.result(timeout=3)
             self.assertTrue(delivered.wait(timeout=3))
-        self.assertEqual(self.events, [('error', 'Bluetooth disconnected')])
+        self.assertEqual(self.events, [("error", "Bluetooth disconnected")])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
