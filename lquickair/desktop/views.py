@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .gtk import Gtk, Pango
+from .icons import APPLICATION_ID
 from .widgets import card, label, set_margins
 
 if TYPE_CHECKING:
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
 
 def build_window(app: LQuickAir) -> None:
     app.window = Gtk.ApplicationWindow(application=app, title="lQuickAir")
+    app.window.set_icon_name(APPLICATION_ID)
     app.window.add_css_class("lquickair")
     app.window.set_opacity(1.0)
     app.window.set_default_size(720, 800)
@@ -26,6 +28,10 @@ def build_window(app: LQuickAir) -> None:
     app.window.set_child(page)
 
     hero = Gtk.Box(spacing=16)
+    logo = Gtk.Image.new_from_icon_name(APPLICATION_ID)
+    logo.set_pixel_size(56)
+    logo.set_valign(Gtk.Align.CENTER)
+    hero.append(logo)
     introduction = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
     title = label("Share something nearby")
     title.add_css_class("hero-title")

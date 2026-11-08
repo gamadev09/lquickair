@@ -8,6 +8,12 @@ from typing import Any
 
 from .dialogs import show_received_text
 from .gtk import Gdk, Gio, GLib, Gtk
+from .icons import (
+    APPLICATION_ID,
+    install_desktop_entry,
+    notification_icon,
+    register_window_icon,
+)
 from .settings import Settings, validate_name
 from .theme import install_style
 from .views import build_window
@@ -19,7 +25,7 @@ class LQuickAir(Gtk.Application):
     """Own desktop state and route UI actions to the transfer worker."""
 
     def __init__(self) -> None:
-        super().__init__(application_id="io.github.lquickair.Desktop")
+        super().__init__(application_id=APPLICATION_ID)
         self.settings = Settings()
         self.backend = None
         self.rows = {}
@@ -33,6 +39,7 @@ class LQuickAir(Gtk.Application):
             self.props.active_window.present()
             return
         self.install_style()
+        register_window_icon()
         build_window(self)
         self.window.present()
         self.backend = TransferWorker(self.emit)
@@ -55,10 +62,22 @@ class LQuickAir(Gtk.Application):
         elif event == "text":
             self.show_received_text(*value)
         elif event == "request":
+            self.notify("Incoming share", f"{value[1]} wants to share with you.", "incoming-share")
             self.show_share_request(value)
+        elif event == "received":
+            self.notify("Share received", str(value), "received-share")
         else:
             self.show_operation_status(event, value)
         return GLib.SOURCE_REMOVE
+
+    def notify(self, title: str, body: str, identifier: str) -> None:
+        """Show a desktop notification when the main window is not focused."""
+        if self.window.is_active():
+            return
+        notification = Gio.Notification.new(title)
+        notification.set_body(body)
+        notification.set_icon(notification_icon())
+        self.send_notification(identifier, notification)
 
     def add_device(self, value: tuple[str, str]) -> None:
         if value not in self.rows:
@@ -325,4 +344,10 @@ def main() -> int:
     if not Gtk.init_check() or Gdk.Display.get_default() is None:
         message = "Cannot open the display. Run lQuickAir from your Linux desktop session."
         raise SystemExit(message)
+    try:
+        install_desktop_entry()
+    except OSError:
+        logging.getLogger(__name__).warning(
+            "Could not register the desktop launcher", exc_info=True
+        )
     return LQuickAir().run(None)

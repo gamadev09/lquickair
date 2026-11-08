@@ -128,7 +128,10 @@ class TransferWorker:
                     summaries.append("Received text.")
                 else:
                     summaries.append(f"Received Wi-Fi credentials for {result.ssid}")
-            self.emit("status", "\n".join(summaries) or "Transfer ended without receiving files.")
+            summary = "\n".join(summaries) or "Transfer ended without receiving files."
+            self.emit("status", summary)
+            if results:
+                self.emit("received", summary)
         else:
             await request.reject()
             self.emit("status", "Incoming transfer declined.")
